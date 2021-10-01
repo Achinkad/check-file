@@ -1,18 +1,19 @@
-package "Example of .ggo file"
+#----------------------------
+# GENERIC CONFIGURATION
+#----------------------------
+package "CheckFile GGO"
 version "1.0"
-purpose "Simple example (optional)"
-description "description needed (optional)"
-versiontext "versiontext needed (optional)"
+usage "./checkFile [options] [filename]"
+description "#### Authors ####
+Belisa Lopes <2200724@my.ipleiria.pt>
+José P. Areia <2200655@my.ipleiria.pt>
+
+#### Types of files supported ####
+PDF, GIF, JPG, PNG, MP4, ZIP, HTML"
 
 #----------------------------
-# independent options
+# OPTIONS AVAILABLE
 #----------------------------
-# Mandatory option
-#option "folder" f "folder" string typestr="dirname" required
-
-# Optional
-#option "num" n "number" int optional
-
-#
-# NOTE: support for this file needs to be enabled in 'makefile'
-#
+option "file"   f "fich"                string optional
+option "batch"  b "fich_with_filenames" string optional
+option "dir"    d "directory"           string optional
