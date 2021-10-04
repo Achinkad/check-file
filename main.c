@@ -12,10 +12,17 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 
 #include "args.h"
 #include "debug.h"
 #include "memory.h"
+#include "type.h"
+
+#define LSIZ 128
+#define RSIZ 10
 
 int main(int argc, char *argv[]) {
     struct gengetopt_args_info args;
@@ -25,51 +32,75 @@ int main(int argc, char *argv[]) {
     }
 
     if (strcmp(argv[1], "-f") == 0 || strcmp(argv[1], "--file") == 0) {
-        if (access(args.file_arg, F_OK) == 0) {
+        /* Check if the file passed throught the command line exists or not. */
+        if (access(args.file_arg, F_OK) == -1) {
+            fprintf(stderr, "ERROR: cannot open file <%s> -- %s\n", args.file_arg, strerror(errno));
+        } else {
             pid_t pid = fork();
             if (pid == 0) {
-                execlp("file", "file", "-E", args.file_arg, NULL);
-                fprintf(stderr, "ERROR: cannot execute the command <execlp> -- %s\n", strerror(errno));
-                exit(1);
-            } else if(pid > 0) {
-                wait(NULL);
+                int fd = open("output.txt", O_TRUNC | O_WRONLY | O_CREAT, S_IRWXU);
+                dup2(fd, STDOUT_FILENO);
+                close(fd);
+                execlp("file", "file", "-E", "-b", "--mime-type", args.file_arg, NULL);
+                perror("execl");
+                _exit(1);
             } else {
-                ERROR(2, "ERROR: can't execute fork\n");
+                wait(NULL);
+                FILE * fp = fopen("output.txt", "r");
+                char * mime = malloc(sizeof(char)+1);
+                fscanf(fp,"%s", mime);
+                check_type(mime, args.file_arg);
+                free(mime);
             }
-        } else {
-            fprintf(stderr, "ERROR: cannot open file <%s> -- %s\n", args.file_arg, strerror(errno));
         }
     }
 
     if (strcmp(argv[1], "-b") == 0 || strcmp(argv[1], "--batch") == 0) {
         if (access(args.batch_arg, F_OK) == 0) {
-            pid_t pid = fork();
-            if (pid == 0) {
-                // open file and read
-                // ciclo for para cada linha
-            } else if(pid > 0) {
-                wait(NULL);
-            } else {
-                ERROR(2, "ERROR: can't execute fork\n");
-            }
-        } else {
-            fprintf(stderr, "ERROR: cannot open file <%s> -- %s\n", args.file_arg, strerror(errno));
-        }
-    }
+            char line[RSIZ][LSIZ];
+            FILE * fp;
+            int count_lines = 0;
+            int i = 0;
+            int tot = 0;
 
-    if (strcmp(argv[1], "-d") == 0 || strcmp(argv[1], "--dir") == 0) {
-        if (access(args.file_arg, F_OK) == 0) {
-            pid_t pid = fork();
-            if (pid == 0) {
-                // Verificar o tipo de ficheiro para o diretorio a apontar
-            } else if(pid > 0) {
-                wait(NULL);
-            } else {
-                ERROR(2, "ERROR: can't execute fork\n");
+            fp = fopen(args.batch_arg, "r");
+            if (fp == NULL) {
+               exit(EXIT_FAILURE);
             }
-        } else {
-            fprintf(stderr, "ERROR: cannot open file <%s> -- %s\n", args.file_arg, strerror(errno));
-        }
+
+            printf("[INFO] analysing files listed in '%s'\n", args.batch_arg);
+            while(fgets(line[i], LSIZ, fp)) {
+               line[i][strlen(line[i]) - 1] = '\0';
+               i++;
+            }
+
+            tot = i;
+            printf("\nThe content of the file %s are: \n",args.batch_arg);
+            for(i = 0; i < tot; ++i) {
+                printf("%s\n", line[i]);
+                count_lines += 1;
+            }
+
+            for (int i = 0; i < count_lines; i++) {
+                pid_t pid = fork();
+                if (pid == -1){
+                    ERROR(2, "Erro na execucao do fork\n");
+                }
+                else if(pid == 0){ //apenas se for filho
+                    execlp("file", "file", "-E", "-b", "--mime-type", line[i], NULL);
+                }
+            }
+
+            for (int i=0; i < count_lines; i++) {
+               wait(NULL); //o pai espera por todos os filhos
+            }
+
+            fclose(fp);
+            exit(EXIT_SUCCESS);
+       }
+       else {
+           fprintf(stderr, "ERROR: cannot open file <%s> -- %s\n", args.file_arg, strerror(errno));
+       }
     }
 
 	cmdline_parser_free(&args);

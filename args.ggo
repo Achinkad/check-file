@@ -14,6 +14,6 @@ PDF, GIF, JPG, PNG, MP4, ZIP, HTML"
 #----------------------------
 # OPTIONS AVAILABLE
 #----------------------------
-option "file"   f "fich"                string optional
+option "file"   f "fich"                string optional multiple
 option "batch"  b "fich_with_filenames" string optional
 option "dir"    d "directory"           string optional

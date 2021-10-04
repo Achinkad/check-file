@@ -24,7 +24,7 @@ PROGRAM=checkFile
 PROGRAM_OPT=args
 
 # Object files required to build the executable
-PROGRAM_OBJS=main.o debug.o memory.o $(PROGRAM_OPT).o
+PROGRAM_OBJS=main.o debug.o memory.o $(PROGRAM_OPT).o type.o
 
 # Clean and all are not files
 .PHONY: clean all docs indent debugon
@@ -48,6 +48,7 @@ $(PROGRAM): $(PROGRAM_OBJS)
 main.o: main.c debug.h memory.h $(PROGRAM_OPT).h
 $(PROGRAM_OPT).o: $(PROGRAM_OPT).c $(PROGRAM_OPT).h
 
+type.o: type.c type.h
 debug.o: debug.c debug.h
 memory.o: memory.c memory.h
 
