@@ -17,12 +17,80 @@
 #include "debug.h"
 #include "memory.h"
 
-void check_type(char *buf, char *file) {
+void check_mime(char *buf, char *file) {
+    char * buf_extension;   /* Real extension (from the file command) */
+    char * file_extension;  /* Extension given by the file (not the command) */
+    const char slash = '/';
+    const char dot = '.';
+
+   /*
+    * Find the last occurrence of the character '/' and '.' in the
+    * strings buf_extension and file_extension respectively.
+    */
+    buf_extension = strrchr(buf, slash);
+    file_extension = strrchr(file, dot);
+
+   /*
+    * Since the strings buf_extension and file_extension start with the
+    * character '/' and '.' respectively, we need to remove that characters
+    * in order to compare both strings and the code below.
+    */
+    if (buf_extension[0] == '/') buf_extension++;
+    if (file_extension[0] == '.') file_extension++;
+
     if (strcmp(buf, "application/pdf") == 0) {
-        printf("[OK] '%s': extension 'pdf' matches file type 'pdf'\n", file);
-    } else if (strcmp(buf, "image/gif") == 0) {
-        printf("[OK] '%s': extension 'gif' matches file type 'gif'\n", file);
-    } else {
-        printf("[INFO] '%s': type '%s' is not supported by checkFile\n", file, buf);
+        if (strcmp(buf_extension, file_extension) == 0) {
+            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
+        } else {
+            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
+        }
+    }
+
+    if (strcmp(buf, "image/gif") == 0) {
+        if (strcmp(buf_extension, file_extension) == 0) {
+            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
+        } else {
+            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
+        }
+    }
+
+    if (strcmp(buf, "image/jpeg") == 0) {
+        if (strcmp(buf_extension, file_extension) == 0) {
+            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
+        } else {
+            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
+        }
+    }
+
+    if (strcmp(buf, "image/png") == 0) {
+        if (strcmp(buf_extension, file_extension) == 0) {
+            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
+        } else {
+            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
+        }
+    }
+
+    if (strcmp(buf, "video/mp4") == 0) {
+        if (strcmp(buf_extension, file_extension) == 0) {
+            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
+        } else {
+            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
+        }
+    }
+
+    if (strcmp(buf, "application/zip") == 0) {
+        if (strcmp(buf_extension, file_extension) == 0) {
+            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
+        } else {
+            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
+        }
+    }
+
+    if (strcmp(buf, "text/html") == 0) {
+        if (strcmp(buf_extension, file_extension) == 0) {
+            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
+        } else {
+            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
+        }
     }
 }

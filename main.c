@@ -13,7 +13,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
 #include <fcntl.h>
 
 #include "args.h"
@@ -24,33 +23,35 @@
 #define LSIZ 128
 #define RSIZ 10
 
-int main(int argc, char *argv[]) {
-    struct gengetopt_args_info args;
+struct gengetopt_args_info args;
 
+int main(int argc, char *argv[]) {
     if(cmdline_parser(argc, argv, &args) != 0) {
         ERROR(1, "ERROR: error in cmdline_parser\n");
     }
 
     if (strcmp(argv[1], "-f") == 0 || strcmp(argv[1], "--file") == 0) {
-        /* Check if the file passed throught the command line exists or not. */
-        if (access(args.file_arg, F_OK) == -1) {
-            fprintf(stderr, "ERROR: cannot open file <%s> -- %s\n", args.file_arg, strerror(errno));
-        } else {
-            pid_t pid = fork();
-            if (pid == 0) {
-                int fd = open("output.txt", O_TRUNC | O_WRONLY | O_CREAT, S_IRWXU);
-                dup2(fd, STDOUT_FILENO);
-                close(fd);
-                execlp("file", "file", "-E", "-b", "--mime-type", args.file_arg, NULL);
-                perror("execl");
-                _exit(1);
+        for (unsigned int i = 0; i < args.file_given; ++i) {
+            /* Check if the file passed throught the command line exists or not. */
+            if (access(args.file_arg[i], F_OK) == -1) {
+                fprintf(stderr, "ERROR: cannot open file <%s> -- %s\n", args.file_arg[i], strerror(errno));
             } else {
-                wait(NULL);
-                FILE * fp = fopen("output.txt", "r");
-                char * mime = malloc(sizeof(char)+1);
-                fscanf(fp,"%s", mime);
-                check_type(mime, args.file_arg);
-                free(mime);
+                pid_t pid = fork();
+                if (pid == 0) {
+                    int fd = open("output.txt", O_TRUNC | O_WRONLY | O_CREAT, S_IRWXU);
+                    dup2(fd, STDOUT_FILENO);
+                    close(fd);
+                    execlp("file", "file", "-E", "-b", "--mime-type", args.file_arg[i], NULL);
+                    perror("execl");
+                    _exit(1);
+                } else {
+                    wait(NULL);
+                    FILE * fp = fopen("output.txt", "r");
+                    char * mime = malloc(sizeof(char)+1);
+                    fscanf(fp, "%s", mime);
+                    check_mime(mime, args.file_arg[i]);
+                    free(mime);
+                }
             }
         }
     }
@@ -99,7 +100,7 @@ int main(int argc, char *argv[]) {
             exit(EXIT_SUCCESS);
        }
        else {
-           fprintf(stderr, "ERROR: cannot open file <%s> -- %s\n", args.file_arg, strerror(errno));
+           fprintf(stderr, "ERROR: cannot open file <%s> -- %s\n", args.batch_arg, strerror(errno));
        }
     }
 

@@ -39,8 +39,10 @@ struct gengetopt_args_info
 {
   const char *help_help; /**< @brief Print help and exit help description.  */
   const char *version_help; /**< @brief Print version and exit help description.  */
-  char * file_arg;	/**< @brief fich.  */
-  char * file_orig;	/**< @brief fich original value given at command line.  */
+  char ** file_arg;	/**< @brief fich.  */
+  char ** file_orig;	/**< @brief fich original value given at command line.  */
+  unsigned int file_min; /**< @brief fich's minimum occurreces */
+  unsigned int file_max; /**< @brief fich's maximum occurreces */
   const char *file_help; /**< @brief fich help description.  */
   char * batch_arg;	/**< @brief fich_with_filenames.  */
   char * batch_orig;	/**< @brief fich_with_filenames original value given at command line.  */

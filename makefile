@@ -5,7 +5,7 @@
 # date 2010-09-26 / updated: 2016-03-15 (Patricio)
 
 # Libraries to include (if any)
-LIBS=#-lm -pthread
+LIBS=-lm -pthread
 
 # Compiler flags
 CFLAGS=-Wall -Wextra -ggdb -std=c11 -pedantic -D_POSIX_C_SOURCE=200809L #-pg
