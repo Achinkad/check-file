@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (strcmp(argv[1], "-f") == 0 || strcmp(argv[1], "--file") == 0) {
-        for (unsigned int i = 0; i < args.file_given; ++i) {
+        for (int i = 0; i < (int) args.file_given; ++i) {
             /* Check if the file passed throught the command line exists or not. */
             if (access(args.file_arg[i], F_OK) == -1) {
                 fprintf(stderr, "ERROR: cannot open file <%s> -- %s\n", args.file_arg[i], strerror(errno));
@@ -46,8 +46,8 @@ int main(int argc, char *argv[]) {
                     _exit(1);
                 } else {
                     wait(NULL);
-                    FILE * fp = fopen("output.txt", "r");
-                    char * mime = malloc(sizeof(char)+1);
+                    FILE *fp = fopen("output.txt", "r");
+                    char *mime = malloc(sizeof(char)+1);
                     fscanf(fp, "%s", mime);
                     check_mime(mime, args.file_arg[i]);
                     free(mime);

@@ -1,5 +1,5 @@
 /*
- * @file main.c
+ * @file type.c
  * @date 2021-09-28
  * @author_01 Belisa Lopes <2200724@my.ipleiria.pt>
  * @author_02 José P. Areia <2200655@my.ipleiria.pt>
@@ -17,11 +17,17 @@
 #include "debug.h"
 #include "memory.h"
 
+#define NUM_OF_MIMES 7
+
+int match_string(const char *buf_extension, char **mime_list);
+
 void check_mime(char *buf, char *file) {
-    char * buf_extension;   /* Real extension (from the file command) */
-    char * file_extension;  /* Extension given by the file (not the command) */
+    char *mime_list[NUM_OF_MIMES] = {"pdf", "gif", "jpeg", "png", "mp4", "zip", "html"};
+    char *buf_extension;   /* Real extension (from the file command) */
+    char *file_extension;  /* Extension given by the file (not the command) */
     const char slash = '/';
     const char dot = '.';
+    int match = 0;
 
    /*
     * Find the last occurrence of the character '/' and '.' in the
@@ -38,59 +44,30 @@ void check_mime(char *buf, char *file) {
     if (buf_extension[0] == '/') buf_extension++;
     if (file_extension[0] == '.') file_extension++;
 
-    if (strcmp(buf, "application/pdf") == 0) {
-        if (strcmp(buf_extension, file_extension) == 0) {
-            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
-        } else {
-            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
-        }
-    }
+    match = match_string(buf_extension, mime_list);
 
-    if (strcmp(buf, "image/gif") == 0) {
+    if (match != -1) {
+        /* Comparing the buf_extension with the file_extension to verified if the file is legit */
         if (strcmp(buf_extension, file_extension) == 0) {
             printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
         } else {
             printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
         }
+    } else {
+        printf("[INFO] '%s': type '%s' is not supported by checkFile\n", file, buf);
     }
+}
 
-    if (strcmp(buf, "image/jpeg") == 0) {
-        if (strcmp(buf_extension, file_extension) == 0) {
-            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
-        } else {
-            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
-        }
-    }
+/*
+ * Comparing the buf_extension given by the command file to the
+ * array of mime types createad in the begging of the function main.
+ */
 
-    if (strcmp(buf, "image/png") == 0) {
-        if (strcmp(buf_extension, file_extension) == 0) {
-            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
-        } else {
-            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
+int match_string(const char *buf_extension, char **mime_list) {
+    for (int i = 0; i < NUM_OF_MIMES; i++) {
+        if (strcmp(buf_extension, mime_list[i]) == 0) {
+            return i;
         }
     }
-
-    if (strcmp(buf, "video/mp4") == 0) {
-        if (strcmp(buf_extension, file_extension) == 0) {
-            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
-        } else {
-            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
-        }
-    }
-
-    if (strcmp(buf, "application/zip") == 0) {
-        if (strcmp(buf_extension, file_extension) == 0) {
-            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
-        } else {
-            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
-        }
-    }
-
-    if (strcmp(buf, "text/html") == 0) {
-        if (strcmp(buf_extension, file_extension) == 0) {
-            printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
-        } else {
-            printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
-        }
-    }
+    return -1;
 }
