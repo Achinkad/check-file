@@ -43,14 +43,20 @@ int main(int argc, char *argv[]) {
                     close(fd);
                     execlp("file", "file", "-E", "-b", "--mime-type", args.file_arg[i], NULL);
                     perror("execl");
-                    _exit(1);
-                } else {
+                    exit(1);
+                } else if (pid > 0) {
                     wait(NULL);
                     FILE *fp = fopen("output.txt", "r");
+                    if (fp == NULL) {
+                       exit(EXIT_FAILURE);
+                    }
                     char *mime = malloc(sizeof(char)+1);
                     fscanf(fp, "%s", mime);
                     check_mime(mime, args.file_arg[i]);
                     free(mime);
+                    exit(0);
+                } else {
+                    ERROR(1, "ERROR: cannot execute fork()");
                 }
             }
         }
@@ -61,15 +67,15 @@ int main(int argc, char *argv[]) {
             char line[RSIZ][LSIZ];
             FILE * fp;
             int count_lines = 0;
-            int i = 0;
             int tot = 0;
+            int i = 0;
 
             fp = fopen(args.batch_arg, "r");
             if (fp == NULL) {
                exit(EXIT_FAILURE);
             }
 
-            printf("[INFO] analysing files listed in '%s'\n", args.batch_arg);
+            printf("[INFO] analysing files listed in '%s'", args.batch_arg);
             while(fgets(line[i], LSIZ, fp)) {
                line[i][strlen(line[i]) - 1] = '\0';
                i++;
@@ -78,7 +84,7 @@ int main(int argc, char *argv[]) {
             tot = i;
             printf("\nThe content of the file %s are: \n",args.batch_arg);
             for(i = 0; i < tot; ++i) {
-                printf("%s\n", line[i]);
+                printf("%s", line[i]);
                 count_lines += 1;
             }
 

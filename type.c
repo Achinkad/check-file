@@ -19,10 +19,10 @@
 
 #define NUM_OF_MIMES 7
 
-int match_string(const char *buf_extension, char **mime_list);
+int match_mime(const char *buf_extension, char **mime_list);
 
 void check_mime(char *buf, char *file) {
-    char *mime_list[NUM_OF_MIMES] = {"pdf", "gif", "jpeg", "png", "mp4", "zip", "html"};
+    char *mime_list[NUM_OF_MIMES] = {"pdf", "gif", "jpg", "png", "mp4", "zip", "html"};
     char *buf_extension;   /* Real extension (from the file command) */
     char *file_extension;  /* Extension given by the file (not the command) */
     const char slash = '/';
@@ -44,7 +44,14 @@ void check_mime(char *buf, char *file) {
     if (buf_extension[0] == '/') buf_extension++;
     if (file_extension[0] == '.') file_extension++;
 
-    match = match_string(buf_extension, mime_list);
+   /*
+    * Handle the special case of the mime type JPG, since it comes as JPEG
+    * so it's necessary to change the buf_extension from JPEG to JPG to match
+    * in the verifications made below in the function match_mime().
+    */
+    if (strcmp(file_extension, "jpg") == 0 && strcmp(buf_extension, "jpeg") == 0) memcpy(buf_extension, file_extension, strlen(file_extension)+1);
+
+    match = match_mime(buf_extension, mime_list);
 
     if (match != -1) {
         /* Comparing the buf_extension with the file_extension to verified if the file is legit */
@@ -62,8 +69,7 @@ void check_mime(char *buf, char *file) {
  * Comparing the buf_extension given by the command file to the
  * array of mime types createad in the begging of the function main.
  */
-
-int match_string(const char *buf_extension, char **mime_list) {
+int match_mime(const char *buf_extension, char **mime_list) {
     for (int i = 0; i < NUM_OF_MIMES; i++) {
         if (strcmp(buf_extension, mime_list[i]) == 0) {
             return i;
