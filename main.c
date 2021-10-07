@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 #include "args.h"
 #include "debug.h"
@@ -46,10 +47,12 @@ int main(int argc, char *argv[]) {
                     exit(1);
                 } else if (pid > 0) {
                     wait(NULL);
+
                     FILE *fp = fopen("output.txt", "r");
                     if (fp == NULL) {
                        exit(EXIT_FAILURE);
                     }
+
                     char *mime = malloc(sizeof(char)+1);
                     fscanf(fp, "%s", mime);
                     check_mime(mime, args.file_arg[i]);
@@ -64,45 +67,43 @@ int main(int argc, char *argv[]) {
 
     if (strcmp(argv[1], "-b") == 0 || strcmp(argv[1], "--batch") == 0) {
         if (access(args.batch_arg, F_OK) == 0) {
-            char line[RSIZ][LSIZ];
-            FILE * fp;
-            int count_lines = 0;
-            int tot = 0;
-            int i = 0;
-
-            fp = fopen(args.batch_arg, "r");
-            if (fp == NULL) {
+            FILE * file_input = fopen(args.batch_arg, "r");
+            if (file_input == NULL) {
                exit(EXIT_FAILURE);
             }
 
-            printf("[INFO] analysing files listed in '%s'", args.batch_arg);
-            while(fgets(line[i], LSIZ, fp)) {
-               line[i][strlen(line[i]) - 1] = '\0';
-               i++;
-            }
+            printf("[INFO] analysing files listed in '%s'\n", args.batch_arg);
 
-            tot = i;
-            printf("\nThe content of the file %s are: \n",args.batch_arg);
-            for(i = 0; i < tot; ++i) {
-                printf("%s", line[i]);
-                count_lines += 1;
-            }
-
-            for (int i = 0; i < count_lines; i++) {
-                pid_t pid = fork();
-                if (pid == -1){
-                    ERROR(2, "Erro na execucao do fork\n");
+            char *files = malloc(sizeof(char)+1);
+            while (fscanf(file_input, "%s", files) != EOF) {
+                if (access(files, F_OK) == -1) {
+                    fprintf(stderr, "[ERROR] cannot open file '%s' -- %s\n", files, strerror(errno));
+                } else {
+                    pid_t pid = fork();
+                    if (pid == 0) {
+                        int file_input = open("output.txt", O_TRUNC | O_WRONLY | O_CREAT, S_IRWXU);
+                        dup2(file_input, STDOUT_FILENO);
+                        close(file_input);
+                        execlp("file", "file", "-E", "-b", "--mime-type", files, NULL);
+                        perror("execl");
+                        exit(1);
+                    } else if (pid > 0) {
+                        wait(NULL);
+                        FILE *file_output = fopen("output.txt", "r");
+                        if (file_output == NULL) {
+                           exit(EXIT_FAILURE);
+                        }
+                        char *mime = malloc(sizeof(char)+1);
+                        while (fscanf(file_output, "%s", mime) != EOF) {
+                            check_mime(mime, files);
+                        }
+                        free(mime);
+                        fclose(file_output);
+                    } else {
+                        ERROR(1, "ERROR: cannot execute fork()");
+                    }
                 }
-                else if(pid == 0){ //apenas se for filho
-                    execlp("file", "file", "-E", "-b", "--mime-type", line[i], NULL);
-                }
             }
-
-            for (int i=0; i < count_lines; i++) {
-               wait(NULL); //o pai espera por todos os filhos
-            }
-
-            fclose(fp);
             exit(EXIT_SUCCESS);
        }
        else {

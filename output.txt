@@ -1,1 +1,1 @@
-image/jpeg
+application/pdf
