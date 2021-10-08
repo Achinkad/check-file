@@ -21,7 +21,7 @@
 
 int match_mime(const char *buf_extension, char **mime_list);
 
-void check_mime(char *buf, char *file) {
+void check_mime(char *buf, char *file, int *num_ok, int *num_mismatch) {
     char *mime_list[NUM_OF_MIMES] = {"pdf", "gif", "jpg", "png", "mp4", "zip", "html"};
     char *buf_extension;   /* Real extension (from the file command) */
     char *file_extension;  /* Extension given by the file (not the command) */
@@ -57,8 +57,10 @@ void check_mime(char *buf, char *file) {
         /* Comparing the buf_extension with the file_extension to verified if the file is legit */
         if (strcmp(buf_extension, file_extension) == 0) {
             printf("[OK] '%s': extension '%s' matches file type '%s'\n", file, file_extension, buf_extension);
+            *num_ok += 1;
         } else {
             printf("[MISMATCH] '%s': extension is '%s', file type is '%s'\n", file, file_extension, buf_extension);
+            *num_mismatch += 1;
         }
     } else {
         printf("[INFO] '%s': type '%s' is not supported by checkFile\n", file, buf);
