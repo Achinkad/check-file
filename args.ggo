@@ -12,8 +12,9 @@ José P. Areia <2200655@my.ipleiria.pt>
 PDF, GIF, JPG, PNG, MP4, ZIP, HTML"
 
 #----------------------------
-# OPTIONS AVAILABLE
+# OPTIONS AVAILABLE (IN GROUPS)
 #----------------------------
-option "file"   f "fich"                string optional multiple
-option "batch"  b "fich_with_filenames" string optional
-option "dir"    d "directory"           string optional
+defgroup "check_file_options" required
+groupoption "file"   f  "fich"                 group="check_file_options" string optional multiple
+groupoption "batch"  b  "fich_with_filenames"  group="check_file_options" string optional
+groupoption "dir"    d  "directory"            group="check_file_options" string optional
