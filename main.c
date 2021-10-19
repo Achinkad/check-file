@@ -1,6 +1,6 @@
 /*
  * @file main.c
- * @date 2021-09-28
+ * @start_date 2021-09-28
  * @author_01 Belisa Lopes <2200724@my.ipleiria.pt>
  * @author_02 José P. Areia <2200655@my.ipleiria.pt>
  */
@@ -31,8 +31,8 @@
 #define ERR_CLOSE_FILE  6
 
 void open_output_file();
-void open_and_check(char *filename, int *num_ok, int *num_mismatch);
 void handle_signal(int signal, siginfo_t *siginfo, void *context);
+void open_file_and_check_mime(char *filename, int *num_ok, int *num_mismatch);
 
 int main(int argc, char *argv[]) {
     struct gengetopt_args_info args;
@@ -42,7 +42,8 @@ int main(int argc, char *argv[]) {
     int num_files = 0, num_errors = 0, num_ok = 0, num_mismatch = 0;
     int status;
 
-    if(cmdline_parser(argc, argv, &args) != 0) ERROR(ERR_CMD_LINE, "cannot execute cmdline_parser\n");
+    if(cmdline_parser(argc, argv, &args) != 0)
+        ERROR(ERR_CMD_LINE, "cannot execute cmdline_parser\n");
 
     /* Signals */
     act.sa_sigaction = handle_signal;
@@ -77,19 +78,22 @@ int main(int argc, char *argv[]) {
             } else {
                 pid_t pid = fork();
                 if (pid == 0) {
-                    /* Opens the file which is going to receive the STDOUT_FILENO */
+                    /* Opens the file that is going to receive the the information from std_out (execlp) */
                     open_output_file();
                     execlp("file", "file", "-b", "--mime-type", args.file_arg[i], NULL);
                     ERROR(ERR_EXEC, "Failed to execute execlp");
                     exit(EXIT_FAILURE);
                 } else if (pid > 0) {
                     waitpid(pid, &status, 0);
-                    if (WIFEXITED(status)) {
-                        if (WEXITSTATUS(status) == ERR_EXEC) {
-                            exit(EXIT_FAILURE);
-                        } else {
-                            open_and_check(args.file_arg[i], &num_ok, &num_mismatch);
-                        }
+                    /* Check if there was an error while executing the execlp and proceed with a failure exit */
+                    if (WIFEXITED(status) && WEXITSTATUS(status) == ERR_EXEC) {
+                        exit(EXIT_FAILURE);
+                    } else {
+                        /*
+                         * Open the output file with the mime files and check the mimes.
+                         * More information avaiable down below (main@line:255).
+                         */
+                        open_file_and_check_mime(args.file_arg[i], &num_ok, &num_mismatch);
                     }
                 } else {
                     ERROR(ERR_FORK, "Failed to execute fork");
@@ -102,16 +106,21 @@ int main(int argc, char *argv[]) {
 
     /* -b/--batch option */
     if (args.batch_arg != NULL) {
+        /* Check if the file passed throught the command line exists or not */
         if (access(args.batch_arg, F_OK) == -1) {
             fprintf(stderr, "ERROR: cannot open file '%s' -- %s\n", args.batch_arg, strerror(errno));
         } else {
-            FILE *file_input = fopen(args.batch_arg, "r");
-            if (file_input == NULL) ERROR(ERR_OPEN_FILE, "Failed to open the file '%s'", args.batch_arg);
+            FILE *batch_file = fopen(args.batch_arg, "r");
+            if (batch_file == NULL) {
+                ERROR(ERR_OPEN_FILE, "Failed to open the file '%s'", args.batch_arg);
+            }
+
             printf("Please send a SIGUSR1 in order to proceed with the application in batch mode.\n");
             pause();
+
             printf("[INFO] analysing files listed in '%s'\n", args.batch_arg);
             char *files = MALLOC(sizeof(char) + 1);
-            while (fscanf(file_input, "%s", files) != EOF) {
+            while (fscanf(batch_file, "%s", files) != EOF) {
                 printf("Processing number: %d/%s\n", num_files + 1, files);
                 if (access(files, F_OK) == -1) {
                     fprintf(stderr, "[ERROR] cannot open file '%s' -- %s\n", files, strerror(errno));
@@ -119,18 +128,22 @@ int main(int argc, char *argv[]) {
                 } else {
                     pid_t pid = fork();
                     if (pid == 0) {
+                        /* Opens the file that is going to receive the the information from std_out (execlp) */
                         open_output_file();
                         execlp("file", "file", "-b", "--mime-type", files, NULL);
                         ERROR(ERR_EXEC, "Failed to execute execlp");
                         exit(EXIT_FAILURE);
                     } else if (pid > 0) {
                         waitpid(pid, &status, 0);
-                        if (WIFEXITED(status)) {
-                            if (WEXITSTATUS(status) == ERR_EXEC) {
-                                exit(EXIT_FAILURE);
-                            } else {
-                                open_and_check(files, &num_ok, &num_mismatch);
-                            }
+                        /* Check if there was an error while executing the execlp and proceed with a failure exit */
+                        if (WIFEXITED(status) && WEXITSTATUS(status) == ERR_EXEC) {
+                            exit(EXIT_FAILURE);
+                        } else {
+                            /*
+                             * Open the output file with the mime files and check the mimes.
+                             * More information avaiable down below (main@line:255).
+                             */
+                            open_file_and_check_mime(files, &num_ok, &num_mismatch);
                         }
                     } else {
                         ERROR(ERR_FORK, "Failed to execute fork");
@@ -139,6 +152,7 @@ int main(int argc, char *argv[]) {
                 num_files++;
             }
             free(files);
+            fclose(batch_file);
             printf("[SUMMARY] files analysed:%d; files OK:%d; files MISMATCH:%d, errors:%d\n", num_files, num_ok, num_mismatch, num_errors);
             exit(EXIT_SUCCESS);
         }
@@ -148,8 +162,8 @@ int main(int argc, char *argv[]) {
     if (args.dir_arg != NULL){
         DIR *folder;
         struct dirent *dir;
-        folder = opendir(args.dir_arg);
 
+        folder = opendir(args.dir_arg);
         if (folder == NULL) {
             fprintf(stderr, "ERROR: cannot open dir '%s' -- %s\n", args.dir_arg, strerror(errno));
             exit(EXIT_FAILURE);
@@ -163,18 +177,22 @@ int main(int argc, char *argv[]) {
             pid_t pid = fork();
             if (pid == 0) {
                 strcat(args.dir_arg, dir->d_name);
+                /* Opens the file that is going to receive the the information from std_out (execlp) */
                 open_output_file();
-                execlp("file", "file", "-b", "--mime-type", args.dir_arg, NULL); //exec to tell what type of file is
+                execlp("file", "file", "-b", "--mime-type", args.dir_arg, NULL);
                 ERROR(ERR_EXEC, "Failed to execute execlp");
                 exit(EXIT_FAILURE);
             } else if (pid > 0) {
                 waitpid(pid, &status, 0);
-                if (WIFEXITED(status)) {
-                    if (WEXITSTATUS(status) == ERR_EXEC) {
-                        exit(EXIT_FAILURE);
-                    } else {
-                        open_and_check(dir->d_name, &num_ok, &num_mismatch);
-                    }
+                /* Check if there was an error while executing the execlp and proceed with a failure exit */
+                if (WIFEXITED(status) && WEXITSTATUS(status) == ERR_EXEC) {
+                    exit(EXIT_FAILURE);
+                } else {
+                    /*
+                     * Open the output file with the mime files and check the mimes.
+                     * More information avaiable down below (main@line:255).
+                     */
+                    open_file_and_check_mime(dir->d_name, &num_ok, &num_mismatch);
                 }
             } else {
                 ERROR(ERR_FORK, "Failed to execute fork");
@@ -190,6 +208,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+/* Functions that handles all the signal supported by the application */
 void handle_signal(int signal, siginfo_t *siginfo, void *context) {
     (void) context;
     int aux;
@@ -206,6 +225,7 @@ void handle_signal(int signal, siginfo_t *siginfo, void *context) {
     }
 
     if (signal == SIGUSR1) {
+        /* Everything that is necessary to build a correct display of current time and date */
         int hours, minutes, seconds, day, month, year;
         time_t now;
         time(&now);
@@ -225,10 +245,7 @@ void handle_signal(int signal, siginfo_t *siginfo, void *context) {
     errno = aux;
 }
 
-/*
- * Opens the file which will contain all the mimes (throught std_out execlp).
- * Has all the verifications needed.
- */
+/* Opens the file which will contain all the mimes (throught std_out execlp) */
 void open_output_file() {
     int fd = open("output.txt", O_TRUNC | O_WRONLY | O_CREAT, S_IRWXU);
     if (fd == -1) {
@@ -245,7 +262,7 @@ void open_output_file() {
 }
 
 /* Opens the file which contains all the mimes and check if the mime is supported by the application */
-void open_and_check(char *filename, int *num_ok, int *num_mismatch) {
+void open_file_and_check_mime(char *filename, int *num_ok, int *num_mismatch) {
     char *mime = MALLOC(sizeof(char) + 1);
 
     FILE *fd = fopen("output.txt", "r");
@@ -253,6 +270,11 @@ void open_and_check(char *filename, int *num_ok, int *num_mismatch) {
         ERROR(ERR_OPEN_FILE, "cannot open the file 'output.txt'");
     }
 
+    /*
+     * For every filename written in the file 'output.txt' the function
+     * check_mime (present in the file 'type.c') is called in order to check
+     * if the mime is supported or not.
+     */
     while (fscanf(fd, "%s", mime) != EOF) {
         check_mime(mime, filename, &(*num_ok), &(*num_mismatch));
     }

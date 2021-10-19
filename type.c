@@ -1,6 +1,6 @@
 /*
  * @file type.c
- * @date 2021-09-28
+ * @start_date 2021-09-28
  * @author_01 Belisa Lopes <2200724@my.ipleiria.pt>
  * @author_02 José P. Areia <2200655@my.ipleiria.pt>
  */
@@ -10,8 +10,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 
 #include "args.h"
 #include "debug.h"
@@ -78,5 +76,4 @@ int match_mime(const char *cmd_file_extension, char **mime_list) {
         }
     }
     return -1;
-
 }
