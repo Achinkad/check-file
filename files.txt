@@ -1,6 +1,3 @@
 giphy.gif
 forest.jpg
 main.c
-asd.jpg
-pointers.pdf
-pointers.jpg

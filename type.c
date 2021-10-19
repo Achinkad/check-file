@@ -33,8 +33,8 @@ void check_mime(char *buf, char *file, int *num_ok, int *num_mismatch) {
     * Find the last occurrence of the character '/' and '.' in the
     * strings buf_extension and file_extension respectively.
     */
-    buf_extension = strrchr(buf, slash);
-    file_extension = strrchr(file, dot);
+    if (strrchr(buf, slash) != NULL) buf_extension = strrchr(buf, slash);
+    if (strrchr(file, dot) != NULL) file_extension = strrchr(file, dot);
 
    /*
     * Since the strings buf_extension and file_extension start with the
@@ -78,4 +78,5 @@ int match_mime(const char *buf_extension, char **mime_list) {
         }
     }
     return -1;
+
 }
