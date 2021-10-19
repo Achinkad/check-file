@@ -31,6 +31,7 @@
 #define ERR_CLOSE_FILE  6
 
 void open_output_file();
+void open_and_check(char *filename, int *num_ok, int *num_mismatch);
 void handle_signal(int signal, siginfo_t *siginfo, void *context);
 
 int main(int argc, char *argv[]) {
@@ -87,13 +88,7 @@ int main(int argc, char *argv[]) {
                         if (WEXITSTATUS(status) == ERR_EXEC) {
                             exit(EXIT_FAILURE);
                         } else {
-                            FILE *fd = fopen("output.txt", "r");
-                            if (fd == NULL) ERROR(ERR_OPEN_FILE, "cannot open the file 'output.txt'");
-                            char *mime = MALLOC(sizeof(char) + 1);
-                            fscanf(fd, "%s", mime);
-                            check_mime(mime, args.file_arg[i], &num_ok, &num_mismatch);
-                            free(mime);
-                            fclose(fd);
+                            open_and_check(args.file_arg[i], &num_ok, &num_mismatch);
                         }
                     }
                 } else {
@@ -185,12 +180,7 @@ int main(int argc, char *argv[]) {
                     if (WEXITSTATUS(status) == ERR_EXEC) {
                         exit(EXIT_FAILURE);
                     } else {
-                        FILE *fd = fopen("output.txt", "r");
-                        char *mimes = MALLOC(sizeof(char) + 1);
-                        fscanf(fd, "%s", mimes);
-                        check_mime(mimes, dir->d_name, &num_ok, &num_mismatch);
-                        free(mimes);
-                        fclose(fd);
+                        open_and_check(dir->d_name, &num_ok, &num_mismatch);
                     }
                 }
             } else {
@@ -242,7 +232,10 @@ void handle_signal(int signal, siginfo_t *siginfo, void *context) {
     errno = aux;
 }
 
-/* Opens the file which contains all the mimes (has all the verifications needed)*/
+/*
+ * Opens the file which will contain all the mimes (throught std_out execlp).
+ * Has all the verifications needed.
+ */
 void open_output_file() {
     int fd = open("output.txt", O_TRUNC | O_WRONLY | O_CREAT, S_IRWXU);
     if (fd == -1) {
@@ -252,8 +245,24 @@ void open_output_file() {
     /* Write the std_out to the file 'output.txt' */
     dup2(fd, STDOUT_FILENO);
 
-    int close = close(fd);
-    if (close == -1) {
+    int closefd = close(fd);
+    if (closefd == -1) {
         ERROR(ERR_CLOSE_FILE, "Failed to close the file 'output.txt'");
     }
+}
+
+/* Opens the file which contains all the mimes and check if the mime is supported by the application */
+void open_and_check(char *filename, int *num_ok, int *num_mismatch) {
+    char *mime = MALLOC(sizeof(char) + 1);
+
+    FILE *fd = fopen("output.txt", "r");
+    if (fd == NULL) {
+        ERROR(ERR_OPEN_FILE, "cannot open the file 'output.txt'");
+    }
+    fscanf(fd, "%s", mime);
+
+    check_mime(mime, filename, &(*num_ok), &(*num_mismatch));
+
+    free(mime);
+    fclose(fd);
 }
