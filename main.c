@@ -129,14 +129,7 @@ int main(int argc, char *argv[]) {
                             if (WEXITSTATUS(status) == ERR_EXEC) {
                                 exit(EXIT_FAILURE);
                             } else {
-                                FILE *fd = fopen("output.txt", "r");
-                                if (fd == NULL) ERROR(ERR_OPEN_FILE, "cannot open the file 'output.txt'");
-                                char *mime = MALLOC(sizeof(char) + 1);
-                                while (fscanf(fd, "%s", mime) != EOF) {
-                                    check_mime(mime, files, &num_ok, &num_mismatch);
-                                }
-                                free(mime);
-                                fclose(fd);
+                                open_and_check(files, &num_ok, &num_mismatch);
                             }
                         }
                     } else {
@@ -259,9 +252,10 @@ void open_and_check(char *filename, int *num_ok, int *num_mismatch) {
     if (fd == NULL) {
         ERROR(ERR_OPEN_FILE, "cannot open the file 'output.txt'");
     }
-    fscanf(fd, "%s", mime);
 
-    check_mime(mime, filename, &(*num_ok), &(*num_mismatch));
+    while (fscanf(fd, "%s", mime) != EOF) {
+        check_mime(mime, filename, &(*num_ok), &(*num_mismatch));
+    }
 
     free(mime);
     fclose(fd);
