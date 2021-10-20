@@ -32,6 +32,7 @@
 
 #define OPEN_MSG        0
 #define END_MSG         1
+#define COLOR_RED       "\033[0;31m"
 #define COLOR_GREEN     "\033[0;32m"
 #define COLOR_RESET     "\033[0m"
 
@@ -57,11 +58,9 @@ int main(int argc, char *argv[]) {
     act.sa_flags |= SA_SIGINFO;
 
     /* If the mode isn't -b/--batch the signal SIGUSR1 is ignored by the application */
-    if (args.batch_arg != NULL) {
-        if (sigaction(SIGUSR1, &act, NULL) < 0)
-            ERROR(ERR_SIGNAL, "Failed to execute sigaction (SIGUSR1)");
-    } else {
-        signal(SIGUSR1, SIG_IGN);
+    if (args.batch_arg == NULL) {
+        if (signal(SIGUSR1, SIG_IGN) == SIG_ERR)
+            ERROR(ERR_SIGNAL, "Failed to execute the function signal");
     }
 
     if (sigaction(SIGQUIT, &act, NULL) < 0)
@@ -70,15 +69,14 @@ int main(int argc, char *argv[]) {
     if (sigaction(SIGINT, &act, NULL) < 0)
         ERROR(ERR_SIGNAL, "Failed to execute sigaction (SIGINT)");
 
-    printf("The application is ready to receive the signals SIGQUIT and SIGUSR1.\nThe signal SIGUSR1 will only work for the batch '-b/--batch' mode.\nIn order to send signals use the following PID: %d\n\n", getpid());
+    printf("The application is ready to receive the signals SIGINT, SIGQUIT and SIGUSR1.\nThe signal SIGUSR1 will only work for the batch '-b/--batch' mode.\nIn order to send signals use the following PID: %d\n\n", getpid());
     /* -f/--file option */
     if ((int) args.file_given > 0) {
         message(OPEN_MSG);
         for (int i = 0; i < (int) args.file_given; i++) {
             /* Check if the file passed throught the command line exists or not. */
             if (access(args.file_arg[i], F_OK) == -1) {
-                printf("\n");
-                fprintf(stderr, "ERROR: cannot open file '%s' -- %s\n\n", args.file_arg[i], strerror(errno));
+                fprintf(stderr, "ERROR: cannot open file '%s' -- %s\n", args.file_arg[i], strerror(errno));
             } else {
                 pid_t pid = fork();
                 if (pid == 0) {
@@ -115,9 +113,14 @@ int main(int argc, char *argv[]) {
         /* Check if the file passed throught the command line exists or not */
         if (access(args.batch_arg, F_OK) == -1) {
             fprintf(stderr, "ERROR: cannot open file '%s' -- %s\n", args.batch_arg, strerror(errno));
-            printf("Please send a SIGQUIT/SIGINT in order to terminate the application.\n\n");
+            printf("\nPlease send a SIGQUIT/SIGINT in order to terminate the application.\n");
+            if (signal(SIGUSR1, SIG_IGN) == SIG_ERR)
+                ERROR(ERR_SIGNAL, "Failed to execute the function signal");
             pause();
         } else {
+            if (sigaction(SIGUSR1, &act, NULL) < 0)
+                ERROR(ERR_SIGNAL, "Failed to execute sigaction (SIGUSR1)");
+
             FILE *batch_file = fopen(args.batch_arg, "r");
             if (batch_file == NULL) {
                 ERROR(ERR_OPEN_FILE, "Failed to open the file '%s'", args.batch_arg);
@@ -177,7 +180,7 @@ int main(int argc, char *argv[]) {
         folder = opendir(args.dir_arg);
         if (folder == NULL) {
             fprintf(stderr, "ERROR: cannot open dir '%s' -- %s\n", args.dir_arg, strerror(errno));
-            printf("Please send a SIGQUIT/SIGINT in order to terminate the application.\n\n");
+            printf("\nPlease send a SIGQUIT/SIGINT in order to terminate the application.\n");
             pause();
         }
         message(OPEN_MSG);
@@ -188,6 +191,7 @@ int main(int argc, char *argv[]) {
 
             pid_t pid = fork();
             if (pid == 0) {
+                strcat(args.dir_arg, "/");
                 strcat(args.dir_arg, dir->d_name);
                 /* Opens the file that is going to receive the the information from std_out (execlp) */
                 open_output_file();
@@ -302,7 +306,9 @@ void message(int n) {
         printf(COLOR_GREEN);
         printf("##### Checking Extensions #####\n");
         printf(COLOR_RESET);
+        printf("\n");
     } else {
+        printf("\n");
         printf(COLOR_GREEN);
         printf("##### Checking Complete!! #####\n");
         printf(COLOR_RESET);
