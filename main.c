@@ -30,6 +30,12 @@
 #define ERR_OPEN_FILE   5
 #define ERR_CLOSE_FILE  6
 
+#define OPEN_MSG        0
+#define END_MSG         1
+#define COLOR_GREEN     "\033[0;32m"
+#define COLOR_RESET     "\033[0m"
+
+void message(int n);
 void open_output_file();
 void handle_signal(int signal, siginfo_t *siginfo, void *context);
 void open_file_and_check_mime(char *filename, int *num_ok, int *num_mismatch);
@@ -52,29 +58,27 @@ int main(int argc, char *argv[]) {
 
     /* If the mode isn't -b/--batch the signal SIGUSR1 is ignored by the application */
     if (args.batch_arg != NULL) {
-        if (sigaction(SIGUSR1, &act, NULL) < 0) {
+        if (sigaction(SIGUSR1, &act, NULL) < 0)
             ERROR(ERR_SIGNAL, "Failed to execute sigaction (SIGUSR1)");
-        }
     } else {
         signal(SIGUSR1, SIG_IGN);
     }
 
-    if (sigaction(SIGQUIT, &act, NULL) < 0) {
+    if (sigaction(SIGQUIT, &act, NULL) < 0)
         ERROR(ERR_SIGNAL, "Failed to execute sigaction (SIGQUIT)");
-    }
 
-    if (sigaction(SIGINT, &act, NULL) < 0) {
+    if (sigaction(SIGINT, &act, NULL) < 0)
         ERROR(ERR_SIGNAL, "Failed to execute sigaction (SIGINT)");
-    }
 
-    printf("The application is ready to receive the signals SIGQUIT and SIGUSR1.\nThe signal SIGUSR1 will only work for the batch '-b/--batch' mode.\nIn order to send signals use the following PID: %d\n", getpid());
-
+    printf("The application is ready to receive the signals SIGQUIT and SIGUSR1.\nThe signal SIGUSR1 will only work for the batch '-b/--batch' mode.\nIn order to send signals use the following PID: %d\n\n", getpid());
     /* -f/--file option */
     if ((int) args.file_given > 0) {
+        message(OPEN_MSG);
         for (int i = 0; i < (int) args.file_given; i++) {
             /* Check if the file passed throught the command line exists or not. */
             if (access(args.file_arg[i], F_OK) == -1) {
-                fprintf(stderr, "ERROR: cannot open file '%s' -- %s\n", args.file_arg[i], strerror(errno));
+                printf("\n");
+                fprintf(stderr, "ERROR: cannot open file '%s' -- %s\n\n", args.file_arg[i], strerror(errno));
             } else {
                 pid_t pid = fork();
                 if (pid == 0) {
@@ -100,6 +104,8 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
+        message(END_MSG);
+        printf("\nPlease send a SIGQUIT/SIGINT in order to proceed with the application.\n");
         pause();
         exit(EXIT_SUCCESS);
     }
@@ -109,15 +115,17 @@ int main(int argc, char *argv[]) {
         /* Check if the file passed throught the command line exists or not */
         if (access(args.batch_arg, F_OK) == -1) {
             fprintf(stderr, "ERROR: cannot open file '%s' -- %s\n", args.batch_arg, strerror(errno));
+            printf("Please send a SIGQUIT/SIGINT in order to terminate the application.\n\n");
+            pause();
         } else {
             FILE *batch_file = fopen(args.batch_arg, "r");
             if (batch_file == NULL) {
                 ERROR(ERR_OPEN_FILE, "Failed to open the file '%s'", args.batch_arg);
             }
 
-            printf("Please send a SIGUSR1 in order to proceed with the application in batch mode.\n");
+            printf("Please send a SIGUSR1 in order to proceed with the application.\n\n");
             pause();
-
+            message(OPEN_MSG);
             printf("[INFO] analysing files listed in '%s'\n", args.batch_arg);
             char *files = MALLOC(sizeof(char) + 1);
             while (fscanf(batch_file, "%s", files) != EOF) {
@@ -154,6 +162,9 @@ int main(int argc, char *argv[]) {
             free(files);
             fclose(batch_file);
             printf("[SUMMARY] files analysed:%d; files OK:%d; files MISMATCH:%d, errors:%d\n", num_files, num_ok, num_mismatch, num_errors);
+            message(END_MSG);
+            printf("\nPlease send a SIGQUIT/SIGINT in order to terminate the application.\n");
+            pause();
             exit(EXIT_SUCCESS);
         }
     }
@@ -166,9 +177,10 @@ int main(int argc, char *argv[]) {
         folder = opendir(args.dir_arg);
         if (folder == NULL) {
             fprintf(stderr, "ERROR: cannot open dir '%s' -- %s\n", args.dir_arg, strerror(errno));
-            exit(EXIT_FAILURE);
+            printf("Please send a SIGQUIT/SIGINT in order to terminate the application.\n\n");
+            pause();
         }
-
+        message(OPEN_MSG);
         while((dir=readdir(folder)) != NULL) {
             if(strcmp (dir->d_name, ".") == 0 || strcmp (dir->d_name, "..") == 0) {
                 continue;
@@ -201,6 +213,8 @@ int main(int argc, char *argv[]) {
         }
         closedir(folder);
         printf("[SUMMARY] files analysed:%d; files OK:%d; files MISMATCH:%d, errors:%d\n", num_files, num_ok, num_mismatch, num_errors);
+        message(END_MSG);
+        printf("\nPlease send a SIGQUIT/SIGINT in order to proceed with the application.\n");
         pause();
         exit(EXIT_SUCCESS);
     }
@@ -239,7 +253,7 @@ void handle_signal(int signal, siginfo_t *siginfo, void *context) {
         month = local->tm_mon + 1;
         year = local->tm_year + 1900;
 
-        printf("Started process on %d.%02d.%02d_%02dh%02d:%02d\n", year, month, day, hours, minutes, seconds);
+        printf("Started process on %d.%02d.%02d_%02dh%02d:%02d\n\n", year, month, day, hours, minutes, seconds);
     }
 
     errno = aux;
@@ -281,4 +295,16 @@ void open_file_and_check_mime(char *filename, int *num_ok, int *num_mismatch) {
 
     free(mime);
     fclose(fd);
+}
+
+void message(int n) {
+    if (!n) {
+        printf(COLOR_GREEN);
+        printf("##### Checking Extensions #####\n");
+        printf(COLOR_RESET);
+    } else {
+        printf(COLOR_GREEN);
+        printf("##### Checking Complete!! #####\n");
+        printf(COLOR_RESET);
+    }
 }
