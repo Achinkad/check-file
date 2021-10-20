@@ -30,13 +30,9 @@
 #define ERR_OPEN_FILE   5
 #define ERR_CLOSE_FILE  6
 
-#define OPEN_MSG        0
-#define END_MSG         1
-#define COLOR_RED       "\033[0;31m"
-#define COLOR_GREEN     "\033[0;32m"
+#define COLOR_YELLOW    "\033[0;33m"
 #define COLOR_RESET     "\033[0m"
 
-void message(int n);
 void open_output_file();
 int check_text_file(char *filename);
 void handle_signal(int signal, siginfo_t *siginfo, void *context);
@@ -74,7 +70,7 @@ int main(int argc, char *argv[]) {
 
     /* -f/--file option */
     if ((int) args.file_given > 0) {
-        message(OPEN_MSG);
+        printf("%s##### Checking Extensions #####%s\n\n", COLOR_YELLOW, COLOR_RESET);
         for (int i = 0; i < (int) args.file_given; i++) {
             /* Check if the file passed throught the command line exists or not. */
             if (access(args.file_arg[i], F_OK) == -1) {
@@ -104,7 +100,7 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
-        message(END_MSG);
+        printf("\n%s##### Checking Complete!! #####%s\n", COLOR_YELLOW, COLOR_RESET);
         printf("\nPlease send a SIGQUIT/SIGINT in order to proceed with the application. Use the following PID: %d\n", getpid());
         pause();
         exit(EXIT_SUCCESS);
@@ -120,8 +116,13 @@ int main(int argc, char *argv[]) {
                 ERROR(ERR_SIGNAL, "Failed to execute the function signal");
             pause();
         } else {
+            /*
+             * Check if the file passed throught the command line is a text
+             * file or not, and proceeds in the most appropriated way.
+             * More information avaiable at the file type.c@line:95.
+             */
             int check_text = check_text_file(args.batch_arg);
-            if (check_text == -1) {
+            if (!check_text) {
                 fprintf(stderr, "[ERROR] Cannot resolve '%s' -- Not a text file\n", args.batch_arg);
                 exit(EXIT_FAILURE);
             } else {
@@ -135,7 +136,7 @@ int main(int argc, char *argv[]) {
 
                 printf("Please send a SIGUSR1 in order to proceed with the application. Use the following PID: %d\n\n", getpid());
                 pause();
-                message(OPEN_MSG);
+                printf("%s##### Checking Extensions #####%s\n\n", COLOR_YELLOW, COLOR_RESET);
                 printf("[INFO] analysing files listed in '%s'\n", args.batch_arg);
                 char *files = MALLOC(sizeof(char) + 1);
                 while (fscanf(batch_file, "%s", files) != EOF) {
@@ -172,8 +173,8 @@ int main(int argc, char *argv[]) {
                 free(files);
                 fclose(batch_file);
                 printf("[SUMMARY] files analysed:%d; files OK:%d; files MISMATCH:%d, errors:%d\n", num_files, num_ok, num_mismatch, num_errors);
-                message(END_MSG);
-                printf("\nPlease send a SIGQUIT/SIGINT in order to proceed with the application.\n");
+                printf("\n%s##### Checking Complete!! #####%s\n", COLOR_YELLOW, COLOR_RESET);
+                printf("\nPlease send a SIGQUIT/SIGINT in order to proceed with the application. (PID: %d)\n", getpid());
                 pause();
                 exit(EXIT_SUCCESS);
             }
@@ -191,7 +192,8 @@ int main(int argc, char *argv[]) {
             printf("\nPlease send a SIGQUIT/SIGINT in order to proceed with the application. Use the following PID: %d\n", getpid());
             pause();
         }
-        message(OPEN_MSG);
+
+        printf("%s##### Checking Extensions #####%s\n\n", COLOR_YELLOW, COLOR_RESET);
         while((dir=readdir(folder)) != NULL) {
             if(strcmp (dir->d_name, ".") == 0 || strcmp (dir->d_name, "..") == 0) {
                 continue;
@@ -225,7 +227,7 @@ int main(int argc, char *argv[]) {
         }
         closedir(folder);
         printf("[SUMMARY] files analysed:%d; files OK:%d; files MISMATCH:%d, errors:%d\n", num_files, num_ok, num_mismatch, num_errors);
-        message(END_MSG);
+        printf("\n%s##### Checking Complete!! #####%s\n", COLOR_YELLOW, COLOR_RESET);
         printf("\nPlease send a SIGQUIT/SIGINT in order to proceed with the application. Use the following PID: %d\n", getpid());
         pause();
         exit(EXIT_SUCCESS);
@@ -307,57 +309,4 @@ void open_file_and_check_mime(char *filename, int *num_ok, int *num_mismatch) {
 
     free(mime);
     fclose(fd);
-}
-
-void message(int n) {
-    if (!n) {
-        printf(COLOR_GREEN);
-        printf("##### Checking Extensions #####\n");
-        printf(COLOR_RESET);
-        printf("\n");
-    } else {
-        printf("\n");
-        printf(COLOR_GREEN);
-        printf("##### Checking Complete!! #####\n");
-        printf(COLOR_RESET);
-    }
-}
-
-int check_text_file(char *filename) {
-    pid_t pid = fork();
-    if (pid == 0) {
-        open_output_file();
-        execlp("file", "file", "-b", "--mime-type", filename, NULL);
-        ERROR(ERR_EXEC, "Failed to execute execlp");
-        exit(EXIT_FAILURE);
-    } else if (pid > 0) {
-        int status;
-        waitpid(pid, &status, 0);
-        /* Check if there was an error while executing the execlp and proceed with a failure exit */
-        if (WIFEXITED(status) && WEXITSTATUS(status) == ERR_EXEC) {
-            exit(EXIT_FAILURE);
-        }
-        char *token;
-        char *mime = MALLOC(sizeof(char) + 1);
-
-        FILE *fd = fopen("output.txt", "r");
-        if (fd == NULL) {
-            ERROR(ERR_OPEN_FILE, "cannot open the file 'output.txt'");
-        }
-        fscanf(fd, "%s", mime);
-        token = strtok(mime, "/");
-
-        if (strcmp(token, "text") == 0) {
-            return 1;
-        } else {
-            return -1;
-        }
-
-        free(mime);
-        fclose(fd);
-        exit(EXIT_SUCCESS);
-    } else {
-        ERROR(ERR_FORK, "Failed to execute fork");
-    }
-    return 0;
 }

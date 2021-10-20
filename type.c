@@ -10,13 +10,21 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/wait.h>
 
 #include "args.h"
 #include "debug.h"
 #include "memory.h"
 
-#define NUM_OF_MIMES 7
+#define NUM_OF_MIMES    7
 
+#define ERR_EXEC        3
+#define ERR_FORK        4
+#define ERR_OPEN_FILE   5
+
+extern void open_output_file();
+
+int check_text_file(char *filename);
 int match_mime(const char *cmd_file_extension, char **mime_list);
 
 void check_mime(char *mime, char *file, int *num_ok, int *num_mismatch) {
@@ -76,4 +84,45 @@ int match_mime(const char *cmd_file_extension, char **mime_list) {
         }
     }
     return -1;
+}
+
+/*
+ * This is function will verify if the file mime type is a text.
+ * If true, the function will return 1 and the -b/--batch mode will proceed
+ * correctly, otherwise the application it will end with an error.
+ * It only works for the -b/--batch mode.
+ */
+int check_text_file(char *filename) {
+    pid_t pid = fork();
+    if (pid == 0) {
+        open_output_file();
+        execlp("file", "file", "-b", "--mime-type", filename, NULL);
+        ERROR(ERR_EXEC, "Failed to execute execlp");
+        exit(EXIT_FAILURE);
+    } else if (pid > 0) {
+        int status;
+        waitpid(pid, &status, 0);
+        /* Check if there was an error while executing the execlp and proceed with a failure exit */
+        if (WIFEXITED(status) && WEXITSTATUS(status) == ERR_EXEC) exit(EXIT_FAILURE);
+
+        char *extension;
+        char *mime = MALLOC(sizeof(char) + 1);
+
+        FILE *fd = fopen("output.txt", "r");
+        if (fd == NULL) {
+            ERROR(ERR_OPEN_FILE, "cannot open the file 'output.txt'");
+        }
+        fscanf(fd, "%s", mime);
+
+        extension = strtok(mime, "/");
+
+        return strcmp(extension, "text") == 0 ? 1 : 0;
+
+        free(mime);
+        fclose(fd);
+        exit(EXIT_SUCCESS);
+    } else {
+        ERROR(ERR_FORK, "Failed to execute fork");
+    }
+    return 0;
 }
