@@ -16,11 +16,11 @@
 #include "debug.h"
 #include "memory.h"
 
-#define NUM_OF_MIMES    7
-
 #define ERR_EXEC        3
 #define ERR_FORK        4
 #define ERR_OPEN_FILE   5
+#define NUM_OF_MIMES    7
+#define BUFFER_SIZE     2047
 
 extern void open_output_file();
 
@@ -103,26 +103,27 @@ int check_text_file(char *filename) {
         int status;
         waitpid(pid, &status, 0);
         /* Check if there was an error while executing the execlp and proceed with a failure exit */
-        if (WIFEXITED(status) && WEXITSTATUS(status) == ERR_EXEC) exit(EXIT_FAILURE);
-
-        char *extension;
-        char *mime = MALLOC(sizeof(char) + 1);
-
-        FILE *fd = fopen("output.txt", "r");
-        if (fd == NULL) {
-            ERROR(ERR_OPEN_FILE, "cannot open the file 'output.txt'");
-        }
-        fscanf(fd, "%s", mime);
-
-        extension = strtok(mime, "/");
-
-        return strcmp(extension, "text") == 0 ? 1 : 0;
-
-        free(mime);
-        fclose(fd);
-        exit(EXIT_SUCCESS);
+        if (WIFEXITED(status) && WEXITSTATUS(status) == ERR_EXEC)
+            exit(EXIT_FAILURE);
     } else {
         ERROR(ERR_FORK, "Failed to execute fork");
     }
-    return 0;
+
+    int match = 0;
+    char *extension;
+    char *mime = MALLOC(BUFFER_SIZE * sizeof(char) + 1);
+
+    FILE *fd = fopen("output.txt", "r");
+    if (fd == NULL)
+        ERROR(ERR_OPEN_FILE, "cannot open the file 'output.txt'");
+
+    fscanf(fd, "%s", mime);
+
+    extension = strtok(mime, "/");
+    match = strcmp(extension, "text");
+
+    fclose(fd);
+    free(mime);
+
+    return match == 0 ? 1 : 0;
 }

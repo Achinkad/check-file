@@ -3,7 +3,7 @@
 #----------------------------
 package "CheckFile GGO"
 version "1.0"
-usage "./checkFile [options] [filename]"
+usage "./checkFile [signal_flag] [options] [filename]"
 description "#### Authors ####
 Belisa Lopes <2200724@my.ipleiria.pt>
 José P. Areia <2200655@my.ipleiria.pt>
@@ -18,3 +18,5 @@ defgroup "check_file_options" required
 groupoption "file"   f  "fich"                 group="check_file_options" string optional multiple
 groupoption "batch"  b  "fich_with_filenames"  group="check_file_options" string optional
 groupoption "dir"    d  "directory"            group="check_file_options" string optional
+
+option      "signal" s  "turn_signals_on"      flag off

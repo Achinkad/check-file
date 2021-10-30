@@ -50,6 +50,8 @@ struct gengetopt_args_info
   char * dir_arg;	/**< @brief directory.  */
   char * dir_orig;	/**< @brief directory original value given at command line.  */
   const char *dir_help; /**< @brief directory help description.  */
+  int signal_flag;	/**< @brief turn_signals_on (default=off).  */
+  const char *signal_help; /**< @brief turn_signals_on help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -57,6 +59,7 @@ struct gengetopt_args_info
   int file_group ; /**< @brief Whether file's was updated.  */
   unsigned int batch_given ;	/**< @brief Whether batch was given.  */
   unsigned int dir_given ;	/**< @brief Whether dir was given.  */
+  unsigned int signal_given ;	/**< @brief Whether signal was given.  */
 
   int check_file_options_group_counter; /**< @brief Counter for group check_file_options */
 } ;

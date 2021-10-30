@@ -1,1 +1,5 @@
-main
+/home/joseareia/Documents/pointers.pdf
+/tmp/folder/folder1/test/test.txt
+pointers.pdf
+forest.jpg
+/tmp/photo.jpg

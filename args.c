@@ -27,7 +27,7 @@
 
 const char *gengetopt_args_info_purpose = "";
 
-const char *gengetopt_args_info_usage = "Usage: ./checkFile [options] [filename]";
+const char *gengetopt_args_info_usage = "Usage: ./checkFile [signal_flag] [options] [filename]";
 
 const char *gengetopt_args_info_versiontext = "";
 
@@ -40,10 +40,12 @@ const char *gengetopt_args_info_help[] = {
   "  -f, --file=STRING   fich",
   "  -b, --batch=STRING  fich_with_filenames",
   "  -d, --dir=STRING    directory",
+  "  -s, --signal        turn_signals_on  (default=off)",
     0
 };
 
 typedef enum {ARG_NO
+  , ARG_FLAG
   , ARG_STRING
 } cmdline_parser_arg_type;
 
@@ -70,6 +72,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->file_given = 0 ; args_info->file_group = 0 ;
   args_info->batch_given = 0 ;
   args_info->dir_given = 0 ;
+  args_info->signal_given = 0 ;
   args_info->check_file_options_group_counter = 0 ;
 }
 
@@ -83,6 +86,7 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->batch_orig = NULL;
   args_info->dir_arg = NULL;
   args_info->dir_orig = NULL;
+  args_info->signal_flag = 0;
   
 }
 
@@ -98,6 +102,7 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->file_max = 0;
   args_info->batch_help = gengetopt_args_info_help[4] ;
   args_info->dir_help = gengetopt_args_info_help[5] ;
+  args_info->signal_help = gengetopt_args_info_help[6] ;
   
 }
 
@@ -283,6 +288,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "batch", args_info->batch_orig, 0);
   if (args_info->dir_given)
     write_into_file(outfile, "dir", args_info->dir_orig, 0);
+  if (args_info->signal_given)
+    write_into_file(outfile, "signal", 0, 0 );
   
 
   i = EXIT_SUCCESS;
@@ -633,6 +640,9 @@ int update_arg(void *field, char **orig_field,
     val = possible_values[found];
 
   switch(arg_type) {
+  case ARG_FLAG:
+    *((int *)field) = !*((int *)field);
+    break;
   case ARG_STRING:
     if (val) {
       string_field = (char **)field;
@@ -650,6 +660,7 @@ int update_arg(void *field, char **orig_field,
   /* store the original value */
   switch(arg_type) {
   case ARG_NO:
+  case ARG_FLAG:
     break;
   default:
     if (value && orig_field) {
@@ -837,10 +848,11 @@ cmdline_parser_internal (
         { "file",	1, NULL, 'f' },
         { "batch",	1, NULL, 'b' },
         { "dir",	1, NULL, 'd' },
+        { "signal",	0, NULL, 's' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVf:b:d:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVf:b:d:s", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -896,6 +908,16 @@ cmdline_parser_internal (
               &(local_args_info.dir_given), optarg, 0, 0, ARG_STRING,
               check_ambiguity, override, 0, 0,
               "dir", 'd',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 's':	/* turn_signals_on.  */
+        
+        
+          if (update_arg((void *)&(args_info->signal_flag), 0, &(args_info->signal_given),
+              &(local_args_info.signal_given), optarg, 0, 0, ARG_FLAG,
+              check_ambiguity, override, 1, 0, "signal", 's',
               additional_error))
             goto failure;
         
