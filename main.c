@@ -32,7 +32,6 @@
 #define BUFFER_SIZE     2047
 
 void open_output_file();
-int check_text_file(char *filename);
 void handle_signal(int signal, siginfo_t *siginfo, void *context);
 void open_file_and_check_mime(char *filename, int *num_ok, int *num_mismatch);
 
@@ -64,10 +63,8 @@ int main(int argc, char *argv[]) {
     if (sigaction(SIGINT, &act, NULL) < 0)
         ERROR(ERR_SIGNAL, "Failed to execute sigaction (SIGINT)");
 
-    if (args.signal_flag) {
-        printf("The application is ready to receive the signals SIGINT, SIGQUIT and SIGUSR1.\nThe signal SIGUSR1 will only work for the batch '-b/--batch' mode.\n");
-        printf("Use the following PID: %d to send a signal and proceed with the application.\n\n", getpid());
-    }
+    if (args.signal_flag)
+        printf("The application is ready to receive the signals SIGINT, SIGQUIT (-b/--batch mode only) and SIGUSR1.\nUse the following PID: %d to send a signal and proceed with the application.\n\n", getpid());
 
     /* -f/--file option */
     if ((int) args.file_given > 0) {
@@ -100,7 +97,9 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
-        if(args.signal_flag) pause();
+        if(args.signal_flag)
+            pause();
+
         exit(EXIT_SUCCESS);
     }
 

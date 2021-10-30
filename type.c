@@ -12,7 +12,6 @@
 #include <string.h>
 #include <sys/wait.h>
 
-#include "args.h"
 #include "debug.h"
 #include "memory.h"
 
@@ -55,7 +54,8 @@ void check_mime(char *mime, char *file, int *num_ok, int *num_mismatch) {
     * so it's necessary to change the cmd_file_extension from JPEG to JPG to match
     * in the verifications made below in the function match_mime().
     */
-    if (strcmp(file_extension, "jpg") == 0 && strcmp(cmd_file_extension, "jpeg") == 0) memcpy(cmd_file_extension, file_extension, strlen(file_extension) + 1);
+    if (strcmp(file_extension, "jpg") == 0 && strcmp(cmd_file_extension, "jpeg") == 0)
+        memcpy(cmd_file_extension, file_extension, strlen(file_extension) + 1);
 
     match = match_mime(cmd_file_extension, mime_list);
 
@@ -79,9 +79,8 @@ void check_mime(char *mime, char *file, int *num_ok, int *num_mismatch) {
  */
 int match_mime(const char *cmd_file_extension, char **mime_list) {
     for (int i = 0; i < NUM_OF_MIMES; i++) {
-        if (strcmp(cmd_file_extension, mime_list[i]) == 0) {
+        if (strcmp(cmd_file_extension, mime_list[i]) == 0)
             return i;
-        }
     }
     return -1;
 }
