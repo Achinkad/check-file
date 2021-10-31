@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 
     /*
      * If the flag "-s/--signal" is active the application will display
-     * a message in order to guide user how to proceed with signals.
+     * a message in order to guide the user how to proceed with signals.
      */
     if (args.signal_flag)
         printf("The application is ready to receive the signals SIGINT, SIGQUIT (-b/--batch mode only) and SIGUSR1.\nUse the following PID: %d to send a signal and proceed with the application.\n\n", getpid());
@@ -114,6 +114,10 @@ int main(int argc, char *argv[]) {
         /* Check if the file passed throught the command line exists or not */
         if (access(args.batch_arg, F_OK) == -1) {
             fprintf(stderr, "ERROR: cannot open file '%s' -- %s\n", args.batch_arg, strerror(errno));
+            if (args.signal_flag) {
+                printf("\nPlease send a SIGQUIT/SIGINT in order to proceed with the application. (PID: %d)\n", getpid());
+                pause();
+            }
         } else {
             /*
              * Check if the file passed throught the command line is a text
@@ -125,6 +129,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "[ERROR] Cannot resolve '%s' -- Not a text file\n", args.batch_arg);
                 exit(EXIT_FAILURE);
             } else {
+                /* Capturing the signal SIGUSR1, which is only avaible for this mode */
                 if (sigaction(SIGUSR1, &act, NULL) < 0)
                     ERROR(ERR_SIGNAL, "Failed to execute sigaction (SIGUSR1)");
 
@@ -139,7 +144,6 @@ int main(int argc, char *argv[]) {
                 printf("[INFO] analysing files listed in '%s'\n", args.batch_arg);
 
                 char *file = MALLOC(BUFFER_SIZE * sizeof(char) + 1);
-
                 while (fscanf(batch_file, "%s", file) != EOF) {
                     if(args.signal_flag)
                         printf("Processing number: %d/%s\n", num_files + 1, file);
