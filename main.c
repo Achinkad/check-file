@@ -63,6 +63,10 @@ int main(int argc, char *argv[]) {
     if (sigaction(SIGINT, &act, NULL) < 0)
         ERROR(ERR_SIGNAL, "Failed to execute sigaction (SIGINT)");
 
+    /*
+     * If the flag "-s/--signal" is active the application will display
+     * a message in order to guide user how to proceed with signals.
+     */
     if (args.signal_flag)
         printf("The application is ready to receive the signals SIGINT, SIGQUIT (-b/--batch mode only) and SIGUSR1.\nUse the following PID: %d to send a signal and proceed with the application.\n\n", getpid());
 
@@ -97,6 +101,8 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
+
+        /* If the signal flag is active the application will wait for a signal */
         if(args.signal_flag)
             pause();
 
@@ -126,12 +132,14 @@ int main(int argc, char *argv[]) {
                 if (batch_file == NULL)
                     ERROR(ERR_OPEN_FILE, "Failed to open the file '%s'", args.batch_arg);
 
+                /* If the signal flag is active the application will wait for a signal */
                 if (args.signal_flag)
                     pause();
 
                 printf("[INFO] analysing files listed in '%s'\n", args.batch_arg);
 
                 char *file = MALLOC(BUFFER_SIZE * sizeof(char) + 1);
+
                 while (fscanf(batch_file, "%s", file) != EOF) {
                     if(args.signal_flag)
                         printf("Processing number: %d/%s\n", num_files + 1, file);

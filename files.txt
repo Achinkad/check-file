@@ -1,0 +1,3 @@
+main.c
+type.c
+checkFile
